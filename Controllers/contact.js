@@ -4,21 +4,32 @@ import { Contact } from "../Models/contact.js"
 export const newContact = async(req, res)=>{
     const { name, email,phone,type} = req.body
 
-    let saveContact = await Contact.create({
+    const session = await mongoose.startSession();
+    //const session = await sequelize.transaction()
+    session.startTransaction();
+    try{
+        let saveContact = await Contact.create({
         name,
         email,
         phone,
         type,
         user : req.user
-    })
+        });
+        await session.commitTransaction()
 
-    res.status(201).json({
+        res.status(201).json({
         message : "Contact Saves Successfully",
         saveContact,
         success: true
-    })
+        });
+    }
+    catch(err){
+        await session.aborttransaction()
+        //await session.rollback()
+        res.status(500).json({message:err.message,success:false})
+    }
 
-}
+};
 
 // update contact 
 export const updateContactById = async(req,res)=>{
@@ -62,7 +73,11 @@ export const getAllContact = async(req,res)=>
 }
  
 // get all contact by userid
-export const getContactByUserId = async(req,res) =>{}
+export const getContactByUserId = async(req,res) =>{
+    const id = req.params.id
+    const userContacts = await Contact.find({user:id})
+     res.json({message: 'All Contact Fetched',userContacts })
+}
 
 
 // get specific contact by userid
